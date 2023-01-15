@@ -2,6 +2,7 @@ from typing import Tuple, List
 import numpy as np
 import cv2
 from multiprocessing import Pool
+from matplotlib import pyplot as plt
 
 
 def preprocess_frame(frame) -> np.ndarray:
@@ -51,3 +52,22 @@ def get_player_paddle_position(frame: List[List[int]]) -> Tuple[float, float]:
     )
 
     return paddle_x_coord, paddle_y_coord
+
+
+def enemy_scored(frame: np.ndarray) -> bool:
+    """Check if enemy's score is still 0, if not, return false.
+    We check it by monitoring pixels in place where enemy's score is
+    located. It's initial value is `0` and if enemy scores, it changes to `1`.
+    So we pick one pixel that is a part of `0` character and changes it's
+    color when score goes to `1`; if we notice pixel's value change,
+    we return True and terminate current game.
+
+    Background color is [144, 72, 17].
+    Number color is [213, 130, 74]
+
+    A good point to observe is x=36 y=18
+    """
+
+    return not np.array_equal(
+        frame[18][36], [213, 130, 74]
+    )  # Return False if pixel is not equal to number color (means enemy scored)

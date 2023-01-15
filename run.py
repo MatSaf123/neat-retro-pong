@@ -17,7 +17,7 @@ Basic CLI for me to be able to run NEAT in different ways.
 
 Arg 1: select project (currently available: [pong])
 Arg 2: select mode (currently available: [train, test])
-Arg 3: use checkpoint? (pass filepath for yes, leave blank or `none` for no)
+Arg 3: use checkpoint? (pass filepath for yes, leave blank or `new` for no)
 Arg 4: TODO: render mode?
         """
         )
@@ -36,7 +36,7 @@ if args[1] not in ["train", "test"]:
 checkpoint_path = None
 # Checkpoint param is optional
 if len(args) > 2:
-    if args[2] == "none":
+    if args[2] == "new":
         pass
     else:
         checkpoint_path = args[2]

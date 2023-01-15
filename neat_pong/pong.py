@@ -9,10 +9,10 @@ from .utils import (
     preprocess_frame,
     get_player_paddle_position,
     get_ball_position,
+    enemy_scored,
 )
 from pathlib import Path
 from datetime import datetime
-from matplotlib import pyplot as plt
 
 
 def eval_genome(genome, config) -> float:
@@ -22,9 +22,11 @@ def eval_genome(genome, config) -> float:
     print("Running eval_genome for:", genome.key)
 
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-    score = make_ai_play_game(net, 1, 200, False)  # Don't render
+    score = make_ai_play_game(net, 4, 200, False)  # Don't render
 
     print("Score for genome {}: {}".format(genome.key, score))
+
+    genome.score = score  # NOTE 1. its fitness not score 2. ParallelEv should be doing that already
     return score
 
 
@@ -37,12 +39,13 @@ def make_ai_play_game(
     """Play game of pong with given neural network as one of the players
     (second player is provided by gym environment)."""
 
-    env = gym.make(
+    env = gym.make(  # TODO make this singleton?
         "Pong-v4",
         render_mode="rgb_array",  # TODO this is hardcoded again, fix somehow to control with CLI
     )  # TODO: find a way to speed this up
 
     fitnesses = []
+
     for _ in range(game_rounds):
 
         env.reset()
@@ -67,7 +70,7 @@ def make_ai_play_game(
                     [(ball_x, ball_y), (player_x, player_y)]
                 )
 
-                print((player_x, player_y, player_ball_dist))
+                # print((player_x, player_y, player_ball_dist))
                 outputs = net.activate((player_x, player_y, player_ball_dist))
                 # print("outputs:", outputs)
                 ai_move = (
@@ -77,15 +80,28 @@ def make_ai_play_game(
                 frame, reward, done, _, info = env.step(ai_move)
                 last_frame = preprocess_frame(frame)
 
+                if reward == 1:
+                    print("*************************************")
+                    print((player_x, player_y), ai_move, reward)
+                    print("*************************************")
+
+            if enemy_scored(frame):
+                # We don't want some casul NN that loses points
+                if reward == 0:
+                    reward -= 1.0  # NOTE thats debatable
+                # print("bailin")
+                break
+
             if render:
                 env.render()
             if done:
                 break
 
-            reward += reward  # TODO: ?????
+            # reward += reward  # TODO: ?????
         fitnesses.append(reward)
 
     fitness = np.array(fitnesses).mean()
+    print("fitnesses:{} fitness:{}".format(fitnesses, fitness))
     # print(f"Special fitness: {fitness}")
     return fitness
 
@@ -109,15 +125,18 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
 
     # Initialize pararell evaluator
     pe = neat.ParallelEvaluator(8, eval_genome)
-    winner = pop.run(pe.evaluate, 40)
-
-    print(winner)
+    winner = pop.run(pe.evaluate, 20)
 
     # Show output of the most fit genome against training data.
+    print(winner)
 
     # Save best network
     with open("winner_{}.pkl".format(datetime.now().timestamp()), "wb") as output:
         pickle.dump(winner, output, 1)
+
+
+def test_ai(filepath: str, config):
+    pass
 
 
 def run(mode: str, render_mode: str, checkpoint_filepath: str):
@@ -140,7 +159,7 @@ def run(mode: str, render_mode: str, checkpoint_filepath: str):
     if mode == "train":
         train_ai(config, checkpoint_filepath)
     elif mode == "test":
-        # test_ai() # TODO implement?
+        test_ai()  # TODO implement?
         pass
     else:
         raise Exception("No such mode as {} in neat-pong".format(mode))
