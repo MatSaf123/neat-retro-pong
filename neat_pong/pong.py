@@ -4,57 +4,7 @@ import gym
 import numpy as np
 import pickle
 import neat
-import cv2
-import matplotlib.pyplot as plt
-from typing import List, Tuple
-
-
-def preprocess_frame(frame) -> np.ndarray:
-    """Get rid of player's score and colors, leaving
-    only interpolated, resized image of two paddles and the ball."""
-    frame = frame[
-        34:-16, 5:-4
-    ]  # note to self: I changed the cropping even more than was in original
-    frame = np.average(frame, axis=2)
-    frame = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_NEAREST)
-    frame = np.array(frame, dtype=np.uint8)
-    return frame
-
-
-def get_ball_position(frame) -> Tuple[float, float]:
-    coords = []
-    for y in range(len(frame)):
-        for x in range(len(frame[0])):
-            if frame[y][x] == 236:  # Search for 236 value, these mean ball body
-                coords.append((x, y))
-
-    if not coords:
-        return None, None
-
-    coords = np.mean([c[0] for c in coords]), np.mean([c[1] for c in coords])
-
-    return coords
-
-
-def get_player_paddle_position(frame: List[List[int]]) -> Tuple[float, float]:
-    # Player is on the right side of the screen, so look for
-    # the "first" paddle from the right edge.
-
-    y_vals = []
-    for y in range(len(frame)):
-        # We look for player's y coords, x are const; this means
-        # we can simply look in the x rows that the player is always
-        # present: 76 and 77.
-        for x in [76, 77]:
-            if frame[y][x] == 123:  # Search for 123 value, these mean paddle body
-                y_vals.append(y)
-
-    paddle_x_coord = 76.5
-    paddle_y_coord = np.median(
-        (y_vals[3] + y_vals[4]) / 2
-    )  # Paddle has a length of 8, so take the mean of two middle coords\
-
-    return paddle_x_coord, paddle_y_coord
+from .utils import preprocess_frame, get_player_paddle_position, get_ball_position
 
 
 def make_ai_play_game(
@@ -71,6 +21,7 @@ def make_ai_play_game(
     for _ in range(game_rounds):
 
         env.reset()
+
         init_frame = env.step(0)[0]
         state = preprocess_frame(init_frame)  # Initial environment state, inputs for NN
 
@@ -92,7 +43,11 @@ def make_ai_play_game(
                 )
 
                 outputs = net.activate((player_x, player_y, player_ball_dist))
-                ai_move = np.argmax(outputs)
+                # print("outputs:", outputs)
+                ai_move = (
+                    np.argmax(outputs) + 1
+                )  # function returns 0, 1, 2; controlls are 1, 2, 3
+                # print("ai_move:", ai_move)
                 frame, reward, done, _, info = env.step(ai_move)
                 last_frame = preprocess_frame(frame)
 
@@ -114,7 +69,7 @@ def train_ai(env: gym.Env, config):
         print("evaluate_genome for:", genome[0])
         gen_id, gen = genome
         net = neat.nn.FeedForwardNetwork.create(gen, config)
-        score = make_ai_play_game(net, env, 1, 200, True)
+        score = make_ai_play_game(net, env, 1, 200, False)  # Don't render
         return score
 
     def evaluate_fitness(genomes, config):
@@ -124,18 +79,23 @@ def train_ai(env: gym.Env, config):
             print(f"fitness of genome {genome[0]}=", fitness)
             genome[1].fitness = fitness
 
+    # TODO cleanup, take arg from cmd that determines mode for checkpoint logic
+
     pop = neat.Population(config)
-
-    # Load checkpoint
-    # TODO: read checkpoint if exists and if arg is passed
-
-    pop.run(evaluate_fitness, 10)
-    pop.save_checkpoint("checkpoint")
+    # pop = neat.Checkpointer.restore_checkpoint(
+    #     "neat-checkpoint-17"
+    # )  # Comment out line above use this one to load saved checkpoint
 
     pop.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
     pop.add_reporter(neat.Checkpointer(1))
+
+    # Load checkpoint
+    # TODO: read checkpoint if exists and if arg is passed
+
+    pop.run(evaluate_fitness, 20)
+    pop.save_checkpoint("checkpoint")
 
     # Show output of the most fit genome against training data.
     winner = pop.statistics.best_genome()
@@ -147,17 +107,16 @@ def train_ai(env: gym.Env, config):
 
 if __name__ == "__main__":
 
-    environment = gym.make(
-        "Pong-v4", render_mode="human"
-    )  # TODO: find a way to speed this up
-    # environment.metadata["render_fps"] = 120 # Doesn't work
+    # NOTE Apparently pong env has no seed control: https://www.youtube.com/watch?v=WnSUQdFnKyY
 
-    # environment = gym.make("PongDeterministic-v4")
+    environment = gym.make(
+        "PongDeterministic-v4", render_mode="human"
+    )  # TODO: find a way to speed this up
+
     # Load config
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, "config.txt")
 
-    # TODO: this should fix stagnation_type attr, possibly
     config = neat.Config(
         neat.DefaultGenome,
         neat.DefaultReproduction,
@@ -166,5 +125,6 @@ if __name__ == "__main__":
         config_path,
     )
 
+    # TODO take arg from command line that runs either test or train mode
     train_ai(environment, config)
     # test_ai()

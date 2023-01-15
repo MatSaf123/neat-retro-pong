@@ -17,4 +17,5 @@ play(
         "as": np.array([-1, 0, 1]),
     },
     noop=np.array([0, 0, 0]),
+    fps=30,  # You can control fps in `play` mode like that
 )
