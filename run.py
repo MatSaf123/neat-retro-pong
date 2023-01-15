@@ -41,6 +41,9 @@ if len(args) > 2:
     else:
         checkpoint_path = args[2]
 
+if args[3] not in ["human", "rgb_array"]:
+    print("No such render mode as {}".format(args[3]))
+
 # Run neat-pong
 if args[0] == "pong":
-    pong.run(args[1], checkpoint_path)
+    pong.run(args[1], args[3], checkpoint_path)

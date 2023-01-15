@@ -1,6 +1,7 @@
 from typing import Tuple, List
 import numpy as np
 import cv2
+from multiprocessing import Pool
 
 
 def preprocess_frame(frame) -> np.ndarray:
