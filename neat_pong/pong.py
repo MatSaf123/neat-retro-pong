@@ -1,10 +1,12 @@
 # Re-implementation of Python-NEAT Pong game, but this time with usage of openai gym.
 import os
+from typing import Optional
 import gym
 import numpy as np
 import pickle
 import neat
 from .utils import preprocess_frame, get_player_paddle_position, get_ball_position
+from pathlib import Path
 
 
 def make_ai_play_game(
@@ -64,7 +66,7 @@ def make_ai_play_game(
     return fitness
 
 
-def train_ai(env: gym.Env, config):
+def train_ai(env: gym.Env, config, checkpoint_filename: Optional[str] = None):
     def evaluate_genome(genome, config):
         print("evaluate_genome for:", genome[0])
         gen_id, gen = genome
@@ -81,18 +83,20 @@ def train_ai(env: gym.Env, config):
 
     # TODO cleanup, take arg from cmd that determines mode for checkpoint logic
 
-    pop = neat.Population(config)
-    # pop = neat.Checkpointer.restore_checkpoint(
-    #     "neat-checkpoint-17"
-    # )  # Comment out line above use this one to load saved checkpoint
+    if checkpoint_filename:
+        # Load checkpoint if path was passed
+        print("***\nLoading checkpoint: {}\n***".format(checkpoint_filename))
+        checkpoint_path = Path(checkpoint_filename).resolve()
+        pop = neat.Checkpointer.restore_checkpoint(checkpoint_path)
+    else:
+        # Otherwise create new population
+        print("***\nRunning neat with new Population\n***")
+        pop = neat.Population(config)
 
     pop.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
     pop.add_reporter(neat.Checkpointer(1))
-
-    # Load checkpoint
-    # TODO: read checkpoint if exists and if arg is passed
 
     pop.run(evaluate_fitness, 20)
     pop.save_checkpoint("checkpoint")
@@ -105,17 +109,18 @@ def train_ai(env: gym.Env, config):
         pickle.dump(winner, output, 1)
 
 
-if __name__ == "__main__":
+def run(mode: str, checkpoint_filepath: str):
 
     # NOTE Apparently pong env has no seed control: https://www.youtube.com/watch?v=WnSUQdFnKyY
+
+    # TODO FIX BIG PYGAME WINDOW WHEN RENDERING https://github.com/openai/gym/issues/550
 
     environment = gym.make(
         "PongDeterministic-v4", render_mode="human"
     )  # TODO: find a way to speed this up
 
     # Load config
-    local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, "config.txt")
+    config_path = Path("config.txt").resolve()
 
     config = neat.Config(
         neat.DefaultGenome,
@@ -126,5 +131,14 @@ if __name__ == "__main__":
     )
 
     # TODO take arg from command line that runs either test or train mode
-    train_ai(environment, config)
-    # test_ai()
+    if mode == "train":
+        train_ai(environment, config, checkpoint_filepath)
+    elif mode == "test":
+        # test_ai() # TODO implement?
+        pass
+    else:
+        raise Exception("No such mode as {} in neat-python".format(mode))
+
+
+if __name__ == "__main__":
+    pass
