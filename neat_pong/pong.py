@@ -7,6 +7,7 @@ import pickle
 import neat
 from .utils import preprocess_frame, get_player_paddle_position, get_ball_position
 from pathlib import Path
+from datetime import datetime
 
 
 def make_ai_play_game(
@@ -81,8 +82,6 @@ def train_ai(env: gym.Env, config, checkpoint_filename: Optional[str] = None):
             print(f"fitness of genome {genome[0]}=", fitness)
             genome[1].fitness = fitness
 
-    # TODO cleanup, take arg from cmd that determines mode for checkpoint logic
-
     if checkpoint_filename:
         # Load checkpoint if path was passed
         print("***\nLoading checkpoint: {}\n***".format(checkpoint_filename))
@@ -105,7 +104,7 @@ def train_ai(env: gym.Env, config, checkpoint_filename: Optional[str] = None):
     winner = pop.statistics.best_genome()
 
     # Save best network
-    with open("winner.pkl", "wb") as output:
+    with open("winner_{}.pkl".format(datetime.now().timestamp()), "wb") as output:
         pickle.dump(winner, output, 1)
 
 
