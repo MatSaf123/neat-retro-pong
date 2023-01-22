@@ -16,7 +16,8 @@ from .utils import (
 )
 from pathlib import Path
 from datetime import datetime
-from matplotlib import pyplot as plt
+
+CENTER_OF_MAP_COORDS = 41.0, 43.5  # Almost every time!
 
 
 class PongEnv:
@@ -43,17 +44,9 @@ def eval_genome(genome, config) -> float:
     """This function has to be on top of the file to allow
     mutliprocessing logic to utilize it"""
 
-    # print(
-    #     "Running eval_genome for: {} (curr fitness: {})".format(
-    #         genome.key, genome.fitness
-    #     )
-    # )
-
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-    score = make_ai_play_game(net, 500, False)  # Don't render
+    score = make_ai_play_game(net, 500, False, genome.key)  # Don't render
 
-    print("Returning score for genome {}: {}".format(genome.key, score))
-    # genome.score = score  # NOTE 1. its fitness not score 2. ParallelEv should be doing that already
     return score
 
 
@@ -61,6 +54,7 @@ def make_ai_play_game(
     net: neat.nn.FeedForwardNetwork,
     timesteps: int,
     render: bool = False,
+    genome_key: str = "",
 ) -> float:
     """Play game of pong with given neural network as one of the players
     (second player is provided by gym environment)."""
@@ -79,60 +73,42 @@ def make_ai_play_game(
     for _ in range(timesteps):
 
         ball_pixel_coords = get_ball_pixel_coords(last_frame)
-        # TODO do it cleaner
+
         if not ball_pixel_coords:
-            ball_x, ball_y = None, None
+            ball_x, ball_y = CENTER_OF_MAP_COORDS
         else:
             ball_x, ball_y = get_object_position(ball_pixel_coords)
 
         player_pixel_coords = get_player_paddle_pixel_coords(last_frame)
         player_x, player_y = get_object_position(player_pixel_coords)
 
-        if not ball_x or not ball_y:
-            frame, reward, done, _, info = env.step(1)  # Stay still
-            last_frame = preprocess_frame(frame)
-        else:
-            player_ball_dist = get_distance_between_points(
-                (ball_x, ball_y), (player_x, player_y)
-            )
+        player_ball_dist = get_distance_between_points(
+            (ball_x, ball_y), (player_x, player_y)
+        )
 
-            # Display plot if ball-paddle are close
-            # print((ball_x, ball_y), (player_x, player_y), player_ball_dist)
-            # if player_ball_dist < 15:
-            #     plt.imshow(last_frame)
-            #     plt.show()
+        outputs = net.activate((player_y, ball_y, player_ball_dist))
 
-            outputs = net.activate((player_x, player_y, player_ball_dist))
-            ai_move = (
-                np.argmax(outputs) + 1
-            )  # function returns 0, 1, 2; controlls are 1, 2, 3
-            frame, reward, done, _, info = env.step(ai_move)
-            last_frame = preprocess_frame(frame)
+        ai_move = (
+            np.argmax(outputs) + 1
+        )  # function returns 0, 1, 2; controlls are 1, 2, 3
+        frame, reward, done, _, info = env.step(ai_move)
+        last_frame = preprocess_frame(frame)
 
-        # Add reward from last frame to fitness
+        # Either 1 for goal scored, 0 for nothing and -1 for point lost in this frame
         fitness += reward
 
-        # TODO should be up
+        # If AI hits ball with it's paddle, give it 0.5 points
         if ball_has_hit_right_paddle(player_pixel_coords, ball_pixel_coords):
-            print("HIT! adding +0.5")
             fitness += 0.5
-
-        # # TODO should be up
-        # if opponent_scored(frame):  # Pass the unprocessed frame with game score!
-        #     # We don't want some casul NN that loses points
-        #     if fitness == 0:
-        #         fitness -= 1.0  # NOTE thats debatable
-        #     # print("bailin")
-        #     break
 
         if render:
             env.render()
         if done:
             break
 
-    # reward += reward  # TODO: ?????
     # TODO maybe add a small reward for staying close to the ball?
     # TODO Add points for time "survived" as well?
+    # TODO add points for not spamming up/down but staying in place?
 
     return fitness
 
@@ -158,7 +134,7 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
 
     # Initialize pararell evaluator
     pe = neat.ParallelEvaluator(8, eval_genome)  # TODO take workers num from cli arg
-    winner = pop.run(pe.evaluate, 60)
+    winner = pop.run(pe.evaluate, 40)
 
     # Show output of the most fit genome against training data.
     print(winner)
@@ -193,30 +169,25 @@ def test_ai(config, filepath: str):
 
         ball_pixel_coords = get_ball_pixel_coords(last_frame)
         if not ball_pixel_coords:
-            ball_x, ball_y = None, None
+            ball_x, ball_y = CENTER_OF_MAP_COORDS
         else:
             ball_x, ball_y = get_object_position(ball_pixel_coords)
 
         player_pixel_coords = get_player_paddle_pixel_coords(last_frame)
         player_x, player_y = get_object_position(player_pixel_coords)
 
-        if not ball_x or not ball_y:
-            print("No ball, staying still")
-            frame, _, done, _, info = env.step(1)  # Stay still
-            last_frame = preprocess_frame(frame)
-        else:
-            player_ball_dist = get_distance_between_points(
-                (ball_x, ball_y), (player_x, player_y)
-            )
+        player_ball_dist = get_distance_between_points(
+            (ball_x, ball_y), (player_x, player_y)
+        )
 
-            outputs = net.activate((player_x, player_y, player_ball_dist))
-            ai_move = np.argmax(outputs) + 1
+        outputs = net.activate((player_y, ball_y, player_ball_dist))
+        ai_move = np.argmax(outputs) + 1
 
-            print("AI move: {}".format(ai_move))
+        print("AI move: {}".format(ai_move))
 
-            frame, _, done, _, info = env.step(ai_move)
-            last_frame = preprocess_frame(frame)
-        # env.render()
+        frame, _, done, _, info = env.step(ai_move)
+        last_frame = preprocess_frame(frame)
+
         if done:
             break
 
@@ -242,7 +213,7 @@ def run(mode: str, render_mode: str, filepath: str):
     if mode == "train":
         train_ai(config, filepath)
     elif mode == "test":
-        test_ai(config, filepath)  # TODO implement?
+        test_ai(config, filepath)
     else:
         raise Exception("No such mode as {} in neat-pong".format(mode))
 

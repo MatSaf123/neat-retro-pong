@@ -108,8 +108,6 @@ def ball_has_hit_right_paddle(
         if pixel_coord[1] == most_right_ball_x
     ]
 
-    # print(ball_right_edge_pixel_coords)
-
     # Check if these pixels are within x=76, that's the only (?) x pos that it's able to collide with paddle
     if not all([px_coords[0] == 76 for px_coords in ball_right_edge_pixel_coords]):
         return False
@@ -131,7 +129,6 @@ def ball_has_hit_right_paddle(
                 continue
 
             # We got a hit!
-            print("Got a hit: pc:{} // bc:{}".format(p_coords, b_coords))
             objects_connect = True
             break
 
@@ -140,22 +137,3 @@ def ball_has_hit_right_paddle(
             break
 
     return objects_connect
-
-
-def opponent_scored(frame: np.ndarray) -> bool:
-    """Check if opponent's score is still 0, if not, return false.
-    We check it by monitoring pixels in place where opponent's score is
-    located. It's initial value is `0` and if opponent scores, it changes to `1`.
-    So we pick one pixel that is a part of `0` character and changes it's
-    color when score goes to `1`; if we notice pixel's value change,
-    we return True and terminate current game.
-
-    Background color is [144, 72, 17].
-    Number color is [213, 130, 74]
-
-    A good point to observe is x=36 y=18
-    """
-
-    return not np.array_equal(
-        frame[18][36], [213, 130, 74]
-    )  # Return False if pixel is not equal to number color (means opponent scored)
