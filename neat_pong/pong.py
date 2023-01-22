@@ -5,104 +5,135 @@ import gym
 import numpy as np
 import pickle
 import neat
+
 from .utils import (
+    get_distance_between_points,
     preprocess_frame,
-    get_player_paddle_position,
-    get_ball_position,
-    enemy_scored,
+    get_player_paddle_pixel_coords,
+    get_ball_pixel_coords,
+    get_object_position,
+    ball_has_hit_right_paddle,
 )
 from pathlib import Path
 from datetime import datetime
+from matplotlib import pyplot as plt
+
+
+class PongEnv:
+
+    _env: gym.Env
+
+    def __init__(self):
+
+        self._env = gym.make(
+            "Pong-v4",
+            render_mode="rgb_array",  # TODO this is hardcoded again, fix somehow to control with CLI
+            # render_mode="human",  # TODO this is hardcoded again, fix somehow to control with CLI
+        )
+
+    @property
+    def get_env(self):
+        if not self._env:
+            raise Exception("u dumbass")
+        else:
+            return self._env
 
 
 def eval_genome(genome, config) -> float:
     """This function has to be on top of the file to allow
     mutliprocessing logic to utilize it"""
 
-    print("Running eval_genome for:", genome.key)
+    # print(
+    #     "Running eval_genome for: {} (curr fitness: {})".format(
+    #         genome.key, genome.fitness
+    #     )
+    # )
 
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-    score = make_ai_play_game(net, 4, 200, False)  # Don't render
+    score = make_ai_play_game(net, 500, False)  # Don't render
 
-    print("Score for genome {}: {}".format(genome.key, score))
-
-    genome.score = score  # NOTE 1. its fitness not score 2. ParallelEv should be doing that already
+    print("Returning score for genome {}: {}".format(genome.key, score))
+    # genome.score = score  # NOTE 1. its fitness not score 2. ParallelEv should be doing that already
     return score
 
 
 def make_ai_play_game(
     net: neat.nn.FeedForwardNetwork,
-    game_rounds: int,
     timesteps: int,
     render: bool = False,
 ) -> float:
     """Play game of pong with given neural network as one of the players
     (second player is provided by gym environment)."""
 
-    env = gym.make(  # TODO make this singleton?
-        "Pong-v4",
-        render_mode="rgb_array",  # TODO this is hardcoded again, fix somehow to control with CLI
-    )  # TODO: find a way to speed this up
+    env = PongEnv().get_env
 
-    fitnesses = []
+    env.reset()
 
-    for _ in range(game_rounds):
+    init_frame = env.step(0)[0]
+    state = preprocess_frame(init_frame)  # Initial environment state, inputs for NN
 
-        env.reset()
+    fitness = 0.0
 
-        init_frame = env.step(0)[0]
-        state = preprocess_frame(init_frame)  # Initial environment state, inputs for NN
+    last_frame = state
 
-        reward = 0.0  # TODO: ???
+    for _ in range(timesteps):
 
-        last_frame = state
+        ball_pixel_coords = get_ball_pixel_coords(last_frame)
+        # TODO do it cleaner
+        if not ball_pixel_coords:
+            ball_x, ball_y = None, None
+        else:
+            ball_x, ball_y = get_object_position(ball_pixel_coords)
 
-        for _ in range(timesteps):
+        player_pixel_coords = get_player_paddle_pixel_coords(last_frame)
+        player_x, player_y = get_object_position(player_pixel_coords)
 
-            ball_x, ball_y = get_ball_position(last_frame)
-            player_x, player_y = get_player_paddle_position(last_frame)
+        if not ball_x or not ball_y:
+            frame, reward, done, _, info = env.step(1)  # Stay still
+            last_frame = preprocess_frame(frame)
+        else:
+            player_ball_dist = get_distance_between_points(
+                (ball_x, ball_y), (player_x, player_y)
+            )
 
-            if not ball_x or not ball_y:
-                frame, reward, done, _, info = env.step(1)  # Stay still
-                last_frame = preprocess_frame(frame)
-            else:
-                player_ball_dist = np.linalg.norm(
-                    [(ball_x, ball_y), (player_x, player_y)]
-                )
+            # Display plot if ball-paddle are close
+            # print((ball_x, ball_y), (player_x, player_y), player_ball_dist)
+            # if player_ball_dist < 15:
+            #     plt.imshow(last_frame)
+            #     plt.show()
 
-                # print((player_x, player_y, player_ball_dist))
-                outputs = net.activate((player_x, player_y, player_ball_dist))
-                # print("outputs:", outputs)
-                ai_move = (
-                    np.argmax(outputs) + 1
-                )  # function returns 0, 1, 2; controlls are 1, 2, 3
-                # print("{}: ai_move:".format(datetime.now()), ai_move)
-                frame, reward, done, _, info = env.step(ai_move)
-                last_frame = preprocess_frame(frame)
+            outputs = net.activate((player_x, player_y, player_ball_dist))
+            ai_move = (
+                np.argmax(outputs) + 1
+            )  # function returns 0, 1, 2; controlls are 1, 2, 3
+            frame, reward, done, _, info = env.step(ai_move)
+            last_frame = preprocess_frame(frame)
 
-                if reward == 1:
-                    print("*************************************")
-                    print((player_x, player_y), ai_move, reward)
-                    print("*************************************")
+        # Add reward from last frame to fitness
+        fitness += reward
 
-            if enemy_scored(frame):
-                # We don't want some casul NN that loses points
-                if reward == 0:
-                    reward -= 1.0  # NOTE thats debatable
-                # print("bailin")
-                break
+        # TODO should be up
+        if ball_has_hit_right_paddle(player_pixel_coords, ball_pixel_coords):
+            print("HIT! adding +0.5")
+            fitness += 0.5
 
-            if render:
-                env.render()
-            if done:
-                break
+        # # TODO should be up
+        # if opponent_scored(frame):  # Pass the unprocessed frame with game score!
+        #     # We don't want some casul NN that loses points
+        #     if fitness == 0:
+        #         fitness -= 1.0  # NOTE thats debatable
+        #     # print("bailin")
+        #     break
 
-            # reward += reward  # TODO: ?????
-        fitnesses.append(reward)
+        if render:
+            env.render()
+        if done:
+            break
 
-    fitness = np.array(fitnesses).mean()
-    print("fitnesses:{} fitness:{}".format(fitnesses, fitness))
-    # print(f"Special fitness: {fitness}")
+    # reward += reward  # TODO: ?????
+    # TODO maybe add a small reward for staying close to the ball?
+    # TODO Add points for time "survived" as well?
+
     return fitness
 
 
@@ -111,7 +142,7 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
     if checkpoint_filename:
         # Load checkpoint if path was passed
         print("***\nLoading checkpoint: {}\n***".format(checkpoint_filename))
-        checkpoint_path = Path(checkpoint_filename).resolve()
+        checkpoint_path = Path("checkpoints", checkpoint_filename).resolve()
         pop = neat.Checkpointer.restore_checkpoint(checkpoint_path)
     else:
         # Otherwise create new population
@@ -121,29 +152,78 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
     pop.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
-    pop.add_reporter(neat.Checkpointer(1))
+    pop.add_reporter(
+        neat.Checkpointer(1, filename_prefix="checkpoints/neat-checkpoint-")
+    )
 
     # Initialize pararell evaluator
-    pe = neat.ParallelEvaluator(8, eval_genome)
-    winner = pop.run(pe.evaluate, 20)
+    pe = neat.ParallelEvaluator(8, eval_genome)  # TODO take workers num from cli arg
+    winner = pop.run(pe.evaluate, 60)
 
     # Show output of the most fit genome against training data.
     print(winner)
 
     # Save best network
-    with open("winner_{}.pkl".format(datetime.now().timestamp()), "wb") as output:
+    filename = "winner_{}.pkl".format(datetime.now().timestamp())
+    with open(filename, "wb") as output:
         pickle.dump(winner, output, 1)
 
-
-def test_ai(filepath: str, config):
-    pass
+    print("Saved to: {}".format(filename))
 
 
-def run(mode: str, render_mode: str, checkpoint_filepath: str):
+def test_ai(config, filepath: str):
 
-    # NOTE Apparently pong env has no seed control: https://www.youtube.com/watch?v=WnSUQdFnKyY
+    # Load model from pickle
+    with open(filepath, "rb") as f:
+        saved_model = pickle.load(f)
+    net = neat.nn.FeedForwardNetwork.create(saved_model, config)
 
-    # TODO FIX BIG PYGAME WINDOW WHEN RENDERING https://github.com/openai/gym/issues/550
+    env = gym.make(  # TODO make this singleton?
+        "Pong-v4",
+        render_mode="human",  # TODO this is hardcoded again, fix somehow to control with CLI
+    )
+
+    env.reset()
+
+    init_frame = env.step(0)[0]
+    state = preprocess_frame(init_frame)  # Initial environment state, inputs for NN
+    last_frame = state
+
+    while True:
+
+        ball_pixel_coords = get_ball_pixel_coords(last_frame)
+        if not ball_pixel_coords:
+            ball_x, ball_y = None, None
+        else:
+            ball_x, ball_y = get_object_position(ball_pixel_coords)
+
+        player_pixel_coords = get_player_paddle_pixel_coords(last_frame)
+        player_x, player_y = get_object_position(player_pixel_coords)
+
+        if not ball_x or not ball_y:
+            print("No ball, staying still")
+            frame, _, done, _, info = env.step(1)  # Stay still
+            last_frame = preprocess_frame(frame)
+        else:
+            player_ball_dist = get_distance_between_points(
+                (ball_x, ball_y), (player_x, player_y)
+            )
+
+            outputs = net.activate((player_x, player_y, player_ball_dist))
+            ai_move = np.argmax(outputs) + 1
+
+            print("AI move: {}".format(ai_move))
+
+            frame, _, done, _, info = env.step(ai_move)
+            last_frame = preprocess_frame(frame)
+        # env.render()
+        if done:
+            break
+
+
+def run(mode: str, render_mode: str, filepath: str):
+    """Filepath leads either to checkpoint file (for training) or
+    net pickled into a file (for testing)."""
 
     # Load config
     config_path = Path("config.txt").resolve()
@@ -156,11 +236,13 @@ def run(mode: str, render_mode: str, checkpoint_filepath: str):
         config_path,
     )
 
+    # initialize singleton?
+    PongEnv()
+
     if mode == "train":
-        train_ai(config, checkpoint_filepath)
+        train_ai(config, filepath)
     elif mode == "test":
-        test_ai()  # TODO implement?
-        pass
+        test_ai(config, filepath)  # TODO implement?
     else:
         raise Exception("No such mode as {} in neat-pong".format(mode))
 

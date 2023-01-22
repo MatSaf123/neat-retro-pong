@@ -161,3 +161,4 @@ cython_debug/
 
 # If you want to upload your nn checkpoint, change it's name to something unique
 neat-checkpoint-*
+/tmp

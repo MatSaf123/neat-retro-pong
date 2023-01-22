@@ -33,17 +33,29 @@ if args[1] not in ["train", "test"]:
     print("No such mode as {}".format(args[1]))
     sys.exit(1)
 
-checkpoint_path = None
-# Checkpoint param is optional
-if len(args) > 2:
-    if args[2] == "new":
-        pass
+# TODO do this in cleaner way
+
+# Checkpoint param for training is optional, but pickle file for testing is not
+filepath = None
+
+if args[1] == "train":
+    if len(args) > 2:
+        if args[2] == "new":
+            pass
+        else:
+            filepath = args[2]
+
+if args[1] == "test":
+    if len(args) > 2:
+        filepath = args[2]
     else:
-        checkpoint_path = args[2]
+        print("Testing mode requires filepath to pickled model as third arg")
+        sys.exit(1)
+
 
 if args[3] not in ["human", "rgb_array"]:
     print("No such render mode as {}".format(args[3]))
 
 # Run neat-pong
 if args[0] == "pong":
-    pong.run(args[1], args[3], checkpoint_path)
+    pong.run(args[1], args[3], filepath)
