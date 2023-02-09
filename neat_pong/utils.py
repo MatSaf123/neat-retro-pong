@@ -95,7 +95,7 @@ def get_player_paddle_pixel_coords(frame) -> Optional[List[Tuple[float, float]]]
 
 def ball_has_hit_right_paddle(
     paddle_pixel_coords: List[Tuple[float, float]],
-    ball_pixel_coords: List[Tuple[float, float]],
+    ball_pixel_coords: Optional[List[Tuple[float, float]]],
 ) -> bool:
     """AI should `like` hitting the ball with it's paddle
     and `love` getting the ball behind opponent's paddle.
@@ -105,6 +105,9 @@ def ball_has_hit_right_paddle(
     With this function we try to detect collision between player's paddle
     and the ball.
     """
+
+    if not ball_pixel_coords:
+        return False
 
     # Get ball's right edge pixel coordinate, I'm not sure if paddle can hit
     # the ball with it's top or bottom, but that's simplification of things
