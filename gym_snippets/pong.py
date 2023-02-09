@@ -3,7 +3,7 @@
 import gym
 from gym.utils.play import play
 
-env = gym.make("Pong-v4", render_mode="rgb_array")
+env = gym.make("PongNoFrameskip-v4", render_mode="rgb_array")
 env.metadata["render_fps"] = 60
 
 key_mappings = {"0": 0, "1": 1, "2": 2, "3": 3}
