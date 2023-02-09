@@ -4,7 +4,6 @@ import gym
 import numpy as np
 import pickle
 import neat
-from matplotlib import pyplot as plt
 
 from .utils import (
     get_distance_between_points,
@@ -13,12 +12,11 @@ from .utils import (
     get_ball_pixel_coords,
     get_object_position,
     ball_has_hit_right_paddle,
-    ball_has_hit_right_paddle_V2,
 )
 from pathlib import Path
 from datetime import datetime
 
-CENTER_OF_MAP_COORDS = 41.0, 43.5  # Almost every time!
+CENTER_OF_MAP_COORDS = 41.0, 43.5  # True almost every time!
 
 
 class PongEnv:
@@ -110,9 +108,8 @@ def make_ai_play_game(
         # If AI hits ball with it's paddle, give it 1 points
         if (
             ball_has_hit_right_paddle(player_pixel_coords, ball_pixel_coords)
-            and frames_since_last_hit > 10
+            and frames_since_last_hit > 10  # Ten frames is the threshold
         ):
-            print("Hit!")
             fitness += 0.25  # Add half of point for just hitting the ball
             # Set to -1 because we'll add 1 at the end of this loop anyway
             frames_since_last_hit = -1
@@ -223,8 +220,6 @@ def run(mode: str, render_mode: str, filepath: str):
         neat.DefaultStagnation,
         config_path,
     )
-
-    # initialize singleton?
 
     if mode == "train":
         train_ai(config, filepath)
