@@ -112,8 +112,8 @@ def make_ai_play_game(
             ball_has_hit_right_paddle(player_pixel_coords, ball_pixel_coords)
             and frames_since_last_hit > 10
         ):
-            print("hit!")
-            fitness += 0.5  # Add half of point for just hitting the ball
+            print("Hit!")
+            fitness += 0.25  # Add half of point for just hitting the ball
             # Set to -1 because we'll add 1 at the end of this loop anyway
             frames_since_last_hit = -1
 
@@ -147,7 +147,7 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
 
     # Initialize pararell evaluator
     pe = neat.ParallelEvaluator(8, eval_genome)  # TODO take workers num from cli arg
-    winner = pop.run(pe.evaluate, 1)
+    winner = pop.run(pe.evaluate, 60)
 
     # Show output of the most fit genome against training data.
     print(winner)
