@@ -144,7 +144,7 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
 
     # Initialize pararell evaluator
     pe = neat.ParallelEvaluator(8, eval_genome)  # TODO take workers num from cli arg
-    winner = pop.run(pe.evaluate, 60)
+    winner = pop.run(pe.evaluate, 30)
 
     # Show output of the most fit genome against training data.
     print(winner)
