@@ -4,7 +4,6 @@ import sys
 from neat_pong import pong
 
 if __name__ == "__main__":
-
     args = sys.argv[1:]
     print(args)
 
@@ -29,7 +28,7 @@ if args[0] not in ["pong"]:
     print("No such project as {}".format(args[0]))
     sys.exit(1)
 
-if args[1] not in ["train", "test"]:
+if args[1] not in ["train", "test", "visualize"]:
     print("No such mode as {}".format(args[1]))
     sys.exit(1)
 
@@ -45,11 +44,11 @@ if args[1] == "train":
         else:
             filepath = args[2]
 
-if args[1] == "test":
+if args[1] == "test" or args[1] == "visualize":
     if len(args) > 2:
         filepath = args[2]
     else:
-        print("Testing mode requires filepath to pickled model as third arg")
+        print("Testing/visualization mode requires filepath to pickled model as third arg")
         sys.exit(1)
 
 

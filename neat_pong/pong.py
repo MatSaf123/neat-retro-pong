@@ -5,6 +5,8 @@ import numpy as np
 import pickle
 import neat
 
+from .visualize import draw_net, plot_stats, plot_species
+
 from .utils import (
     get_distance_between_points,
     preprocess_frame,
@@ -20,11 +22,9 @@ CENTER_OF_MAP_COORDS = 41.0, 43.5  # True almost every time!
 
 
 class PongEnv:
-
     _env: gym.Env
 
     def __init__(self):
-
         self._env = gym.make(
             "PongNoFrameskip-v4",
             render_mode="rgb_array",  # TODO this is hardcoded again, fix somehow to control with CLI
@@ -43,9 +43,15 @@ def eval_genome(genome, config) -> float:
     """This function has to be on top of the file to allow
     mutliprocessing logic to utilize it"""
 
+    # print("Genome {}: Starting simulation".format(genome.key))
+    #
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-    score = make_ai_play_game(net, 2000, False)  # Don't render
-
+    score = make_ai_play_game(net, 800, False)  # Don't render
+    genome.fitness = score
+    print("Genome {} fitness: {}".format(genome.key, genome.fitness))
+    # print(
+    # "Genome {}: Ending simulation with genome score: {}".format(genome.key, score)
+    # )
     return score
 
 
@@ -98,6 +104,9 @@ def make_ai_play_game(
             np.argmax(outputs) + 1
         )  # function returns 0, 1, 2; controlls are 1, 2, 3
 
+        if ai_move == 2 or ai_move == 3:
+            fitness -= 0.0001  # Penalize for moving up or down. Want to stay in place as much as possible
+
         # Take action and prepare frame for next loop iteration
         frame, reward, done, _, info = env.step(ai_move)
         target_frame = preprocess_frame(frame)
@@ -124,7 +133,6 @@ def make_ai_play_game(
 
 
 def train_ai(config, checkpoint_filename: Optional[str] = None):
-
     if checkpoint_filename:
         # Load checkpoint if path was passed
         print("***\nLoading checkpoint: {}\n***".format(checkpoint_filename))
@@ -143,8 +151,8 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
     )
 
     # Initialize pararell evaluator
-    pe = neat.ParallelEvaluator(8, eval_genome)  # TODO take workers num from cli arg
-    winner = pop.run(pe.evaluate, 30)
+    pe = neat.ParallelEvaluator(14, eval_genome)  # TODO take workers num from cli arg
+    winner = pop.run(pe.evaluate, 50)
 
     # Show output of the most fit genome against training data.
     print(winner)
@@ -156,9 +164,23 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
 
     print("Saved to: {}".format(filename))
 
+    # Show info about stats
+    plot_stats(stats, ylog=False, view=True)
+    plot_species(stats, view=True)
+
+    node_names = {
+        -1: "Player Y",
+        -2: "Ball Y",
+        -3: "Player-Ball dist",
+        0: "Stay",
+        1: "Up",
+        2: "Down",
+    }
+
+    draw_net(config, winner, True, node_names=node_names)
+
 
 def test_ai(config, filepath: str):
-
     # Load model from pickle
     with open(filepath, "rb") as f:
         saved_model = pickle.load(f)
@@ -175,8 +197,9 @@ def test_ai(config, filepath: str):
     state = preprocess_frame(init_frame)  # Initial environment state, inputs for NN
     target_frame = state
 
-    while True:
+    left_score, right_score = 0, 0
 
+    while True:
         ball_pixel_coords = get_ball_pixel_coords(target_frame)
 
         if not ball_pixel_coords:
@@ -195,15 +218,22 @@ def test_ai(config, filepath: str):
 
         ai_move = (
             np.argmax(outputs) + 1
-        )  # function returns 0, 1, 2; controlls are 1, 2, 3
+        )  # function returns 0, 1, 2; controlls are 1, 2, 3 (stay, up, down)
 
-        frame, _, done, _, info = env.step(ai_move)
+        frame, score, done, _, info = env.step(ai_move)
+
+        if score == -1:
+            left_score += 1
+        elif score == 1:
+            right_score += 1
+
         target_frame = preprocess_frame(frame)
 
         env.render()
 
-        if done:
-            break
+        # if done or left_score == 10 or right_score == 10:
+        # print("End of the game!")
+        # break
 
 
 def run(mode: str, render_mode: str, filepath: str):
@@ -225,6 +255,11 @@ def run(mode: str, render_mode: str, filepath: str):
         train_ai(config, filepath)
     elif mode == "test":
         test_ai(config, filepath)
+    elif mode == "visualize":
+        # Load model from pickle
+        with open(filepath, "rb") as f:
+            genome = pickle.load(f)
+            draw_net(config, genome, True)
     else:
         raise Exception("No such mode as {} in neat-pong".format(mode))
 
