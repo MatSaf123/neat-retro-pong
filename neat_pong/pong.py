@@ -24,11 +24,13 @@ class PongEnv:
     _env: gym.Env
 
     def __init__(self):
+
+        is_stochastic = os.environ.get("NEAT_PONG_ENV_MODE") == "stochastic"
         self._env = gym.make(
             "ALE/Pong-v5",
             render_mode="rgb_array",
-            frameskip=(1, 2),
-            repeat_action_probability=0.05,
+            frameskip=(1, 2) if is_stochastic else 1,
+            repeat_action_probability=0.05 if is_stochastic else 0.0,
         )
 
     @property
@@ -150,7 +152,14 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
         2: "Down",
     }
 
-    draw_net(config, winner, True, node_names=node_names, show_disabled=False)
+    draw_net(
+        config,
+        winner,
+        True,
+        node_names=node_names,
+        show_disabled=True,
+        prune_unused=False,
+    )
 
 
 def test_ai(config, filepath: str):
@@ -164,7 +173,7 @@ def test_ai(config, filepath: str):
     env = gym.make(
         "ALE/Pong-v5",
         render_mode="human",
-        frameskip=(1, 2) if is_stochastic else None,
+        frameskip=(1, 2) if is_stochastic else 1,
         repeat_action_probability=0.05 if is_stochastic else 0.0,
     )
 
@@ -246,7 +255,8 @@ def run(mode: str, env_mode: str, filepath: str):
             genome,
             True,
             node_names=node_names,
-            show_disabled=False,
+            show_disabled=True,
+            prune_unused=False,
         )
 
     else:
