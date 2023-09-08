@@ -209,7 +209,7 @@ def run(mode: str, render_mode: str, filepath: str):
     net pickled into a file (for testing)."""
 
     # Load config
-    config_path = Path("neat_pong/config.txt").resolve()
+    config_path = Path("config.txt").resolve()
 
     config = neat.Config(
         neat.DefaultGenome,
