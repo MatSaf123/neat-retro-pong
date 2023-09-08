@@ -31,7 +31,7 @@ The result of training process are two agents: `winner_deterministic.pkl` and `w
 
 Since ATARI's Pong is purely deterministic (ATARI-AI's moves are possible to be predicted and are dependant on player's moves - that results in `winner_deterministic.pkl` agent. This means that if player plays in a certain way, he can be sure that ATARI-AI will respond in a way he expects it to). Agent learned to exploit this fact, learned a set of optimal moves and completely outplayed and soft-locked opponent with it, which always leads to a win.
 
-<b>This agent wins 20:0 against ATARI-AI every time.</b>
+<b>This agent wins 21:0 against ATARI-AI every time.</b>
 
 The structure of deterministic agent:
 
@@ -73,7 +73,7 @@ Species in population through generations:
 OpenAI Gym provides two ways to battle the deterministic nature of ATARI environments: frameskips and sticky actions. Frameskips mean that agent gets only a part of observations returned from the environment, sticky action means that there's a chance of repeating last action instead of taking a new one.
 Currently agent skips one or two frames per every one they see (set in code as `frameskip=(1,2)`, taken randomly) and there's 5% chance of sticky action happening (`repeat_action_probability=0.05`).
 
-<b>This agent does not play perfectly, perhaps with more training it would be able to score perfect victories, but it is still able to win against ATARI-AI reliably with a big advantage - example scores are 20:4 and 20:3 in favor of the agent.</b>
+<b>This agent does not play perfectly, perhaps with more training it would be able to score perfect victories, but it is still able to win against ATARI-AI reliably with a big advantage - example scores are 21:5, 21:4 21:3 in favor of the agent.</b>
 
 The structure of stochastic agent:
 
@@ -110,16 +110,19 @@ Species in population through generations. It's interesting to see the original 
     <img src = "speciation_stochastic.svg" alt="Stochastic species progression" style="width:400px;height:400px;"/>
 </p>
 
-## Stochastic Agent 2 (+30 generations)
+## Stochastic Agent +30 more generations
 
-<b>After training stochastic agent described above for 30 more generations, it was able to achieve perfect score against ATARI-AI (20:0)</b>. It mostly exploited the opponent with optimal moves, but when things went out of control it adapted very well and carried out other tactics.
+<p align="center">    
+	<img src="pong_stochastic_2.gif" width="50%" height="50%">
+</p>
+
+<b>After training stochastic agent described above for 30 more generations, it was able to achieve perfect score against ATARI-AI (21:0) or come close to it (e.g. 21:1)</b>. It mostly exploited the opponent with optimal moves, but when things went out of control it adapted very well and carried out other tactics. It's likely that with even more generations it would get perfect score every time.
 
 The structure of the agent:
 
 <p align="center">    
 	<img src = "digraph_stochastic_2.gv.svg" alt="Stochastic net structure"/>
 </p>
-
 
 ```
 Nodes:
@@ -143,15 +146,14 @@ The structure is pretty confusing, especially the singular node `96`. It's worth
 Avg fitness progression through generations 30-60:
 
 <p align="center">    
-    <img src = "avg_fitness_stochastic.svg" alt="Stochastic fitness progression" style="width:400px;height:400px;"/>
+    <img src = "avg_fitness_stochastic_2.svg" alt="Stochastic fitness progression 2" style="width:400px;height:400px;"/>
 </p>
 
 Species in population through generations 30-60: 
 
 <p align="center">    
-    <img src = "speciation_stochastic_2.svg" alt="Stochastic species progression" style="width:400px;height:400px;"/>
+    <img src = "speciation_stochastic_2.svg" alt="Stochastic species progression 2" style="width:400px;height:400px;"/>
 </p>
-
 
 # Random notes
 - On Linux I also needed `sudo apt install swig`, and I did `pip install box2d-py` manually as well.
