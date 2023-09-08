@@ -47,8 +47,8 @@ Connections:
 	DefaultConnectionGene(key=(-1, 0), weight=-2.0634971801223627, enabled=True)
 ```
 
-It is interesting to see such a minimal topology here, and that despite the fact all inputs were connected to all outputs at the start,
-NEAT decided to remove part of the connections.
+It is interesting to see such a minimal topology here, and that despite the fact that all inputs were connected to all outputs at the start,
+NEAT decided to remove part of the connections (for example, `up` and `down` actions are decided purely on player-ball distance value, ommiting ball and player positions). 
 
 Avg fitness progression through generations (max achievable score was 4 because of timesteps set to 800.
 More timesteps == more time to play game == more points during training):
