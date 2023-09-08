@@ -26,7 +26,7 @@ The result of training process are two agents: `winner_deterministic.pkl` and `w
 ## Deterministic Agent
 
 <p align="center">    
-    <img src="pong_deterministic.gif" width="50%" height="50%">
+    <img src="images/pong_deterministic.gif" width="50%" height="50%">
 </p>
 
 Since ATARI's Pong is purely deterministic (ATARI-AI's moves are possible to be predicted and are dependant on player's moves - that results in `winner_deterministic.pkl` agent. This means that if player plays in a certain way, he can be sure that ATARI-AI will respond in a way he expects it to). Agent learned to exploit this fact, learned a set of optimal moves and completely outplayed and soft-locked opponent with it, which always leads to a win.
@@ -36,7 +36,7 @@ Since ATARI's Pong is purely deterministic (ATARI-AI's moves are possible to be 
 The structure of deterministic agent:
 
 <p align="center">    
-    <img src = "digraph_deterministic.gv.svg" alt="Deterministic net structure"/>
+    <img src = "images/digraph_deterministic.gv.svg" alt="Deterministic net structure"/>
 </p>
 
 ```
@@ -56,18 +56,18 @@ It is interesting to see such a minimal topology here, and that despite the fact
 Avg fitness progression through generations (max achievable score was 4 because of timesteps set to 800. More timesteps means more time to play game, more time means more points scored during training):
 
 <p align="center">    
-    <img src = "avg_fitness_deterministic.svg" alt="Deterministic fitness progression" style="width:400px;height:400px;"/>
+    <img src = "images/avg_fitness_deterministic.svg" alt="Deterministic fitness progression" style="width:400px;height:400px;"/>
 </p>
 
 Species in population through generations:
 <p align="center">    
-    <img src = "speciation_deterministic.svg" alt="Deterministic species progression" style="width:400px;height:400px;"/>
+    <img src = "images/speciation_deterministic.svg" alt="Deterministic species progression" style="width:400px;height:400px;"/>
 </p>
 
 ## Stochastic Agent 
 
 <p align="center">    
-	<img src="pong_stochastic.gif" width="50%" height="50%">
+	<img src="images/pong_stochastic.gif" width="50%" height="50%">
 </p>
 
 OpenAI Gym provides two ways to battle the deterministic nature of ATARI environments: frameskips and sticky actions. Frameskips mean that agent gets only a part of observations returned from the environment, sticky action means that there's a chance of repeating last action instead of taking a new one.
@@ -78,7 +78,7 @@ Currently agent skips one or two frames per every one they see (set in code as `
 The structure of stochastic agent:
 
 <p align="center">    
-    <img src = "digraph_stochastic.gv.svg" alt="Stochastic net structure"/>
+    <img src = "images/digraph_stochastic.gv.svg" alt="Stochastic net structure"/>
 </p>
 
 ```
@@ -104,18 +104,18 @@ It's worth noting that some of the connections are disabled (as can be seen in t
 Avg fitness progression through generations (this time timesteps param was set to 1600):
 
 <p align="center">    
-    <img src = "avg_fitness_stochastic.svg" alt="Stochastic fitness progression" style="width:400px;height:400px;"/>
+    <img src = "images/avg_fitness_stochastic.svg" alt="Stochastic fitness progression" style="width:400px;height:400px;"/>
 </p>
 
 Species in population through generations. It's interesting to see the original species go extinct around generation 25:
 <p align="center">    
-    <img src = "speciation_stochastic.svg" alt="Stochastic species progression" style="width:400px;height:400px;"/>
+    <img src = "images/speciation_stochastic.svg" alt="Stochastic species progression" style="width:400px;height:400px;"/>
 </p>
 
 ## Stochastic Agent +30 more generations
 
 <p align="center">    
-	<img src="pong_stochastic_2.gif" width="50%" height="50%">
+	<img src="images/pong_stochastic_2.gif" width="50%" height="50%">
 </p>
 
 <b>After training stochastic agent described above for 30 more generations, it was able to achieve perfect score against ATARI-AI (21:0) or come close to it (e.g. 21:1)</b>. It mostly exploited the opponent with optimal moves, but when things went out of control it adapted very well and carried out other tactics. It's likely that with even more generations it would get perfect score every time.
@@ -123,7 +123,7 @@ Species in population through generations. It's interesting to see the original 
 The structure of the agent:
 
 <p align="center">    
-	<img src = "digraph_stochastic_2.gv.svg" alt="Stochastic net structure"/>
+	<img src = "images/digraph_stochastic_2.gv.svg" alt="Stochastic net structure"/>
 </p>
 
 ```
@@ -148,13 +148,13 @@ The structure is pretty confusing, especially the singular node `96`. There's qu
 Avg fitness progression through generations 30-60:
 
 <p align="center">    
-    <img src = "avg_fitness_stochastic_2.svg" alt="Stochastic fitness progression 2" style="width:400px;height:400px;"/>
+    <img src = "images/avg_fitness_stochastic_2.svg" alt="Stochastic fitness progression 2" style="width:400px;height:400px;"/>
 </p>
 
 Species in population through generations 30-60: 
 
 <p align="center">    
-    <img src = "speciation_stochastic_2.svg" alt="Stochastic species progression 2" style="width:400px;height:400px;"/>
+    <img src = "images/speciation_stochastic_2.svg" alt="Stochastic species progression 2" style="width:400px;height:400px;"/>
 </p>
 
 # Random notes
