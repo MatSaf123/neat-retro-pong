@@ -14,47 +14,39 @@ if __name__ == "__main__":
 NEAT-AI CLI [v0.0.1]
 Basic CLI for me to be able to run NEAT in different ways.
 
-Arg 1: select project (currently available: [pong])
-Arg 2: select mode (currently available: [train, test])
-Arg 3: use checkpoint? (pass filepath for yes, leave blank or `new` for no)
-Arg 4: TODO: render mode?
+Arg 1: select mode (currently available: [train, test])
+Arg 2: use checkpoint? (pass filepath for yes, leave blank or `new` for no)
+Arg 3: pong env stochastic (random-ish) or deterministic? (available: [stochastic, deterministic])
         """
         )
         sys.exit()
 
-# Attempt at running NEAT stuff otherwise
-
-if args[0] not in ["pong"]:
-    print("No such project as {}".format(args[0]))
-    sys.exit(1)
-
-if args[1] not in ["train", "test", "visualize"]:
+if args[0] not in ["train", "test", "visualize"]:
     print("No such mode as {}".format(args[1]))
     sys.exit(1)
-
-# TODO do this in cleaner way
 
 # Checkpoint param for training is optional, but pickle file for testing is not
 filepath = None
 
-if args[1] == "train":
+if args[0] == "train":
     if len(args) > 2:
-        if args[2] == "new":
+        if args[1] == "new":
             pass
         else:
-            filepath = args[2]
+            filepath = args[1]
 
-if args[1] == "test" or args[1] == "visualize":
+if args[0] == "test" or args[0] == "visualize":
     if len(args) > 2:
-        filepath = args[2]
+        filepath = args[1]
     else:
-        print("Testing/visualization mode requires filepath to pickled model as third arg")
+        print(
+            "Testing/visualization mode requires filepath to pickled model as third arg"
+        )
         sys.exit(1)
 
 
-if args[3] not in ["human", "rgb_array"]:
-    print("No such render mode as {}".format(args[3]))
+if args[2] not in ["deterministic", "stochastic"]:
+    print("No such mode as {}".format(args[2]))
 
 # Run neat-pong
-if args[0] == "pong":
-    pong.run(args[1], args[3], filepath)
+pong.run(args[0], args[2], filepath)

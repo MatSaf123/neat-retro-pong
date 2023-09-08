@@ -13,11 +13,11 @@ pip install -r requirements.txt
 # CLI
 Very basic and crude, but somewhat working. Example usages:
 
-`python3 main.py pong train new`
+`python3 main.py pong train new deterministic`
 
-`python3 main.py train checkpoints/checkpoint-1.foo`
+`python3 main.py train checkpoints/checkpoint-1.foo deterministic`
 
-`python3 main.py pong test`
+`python3 main.py pong test stochastic`
 
 # Training results
 

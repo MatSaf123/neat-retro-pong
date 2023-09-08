@@ -3,6 +3,7 @@ import gym
 import numpy as np
 import pickle
 import neat
+import os
 
 from .visualize import draw_net, plot_stats, plot_species
 
@@ -158,11 +159,13 @@ def test_ai(config, filepath: str):
         saved_model = pickle.load(f)
     net = neat.nn.FeedForwardNetwork.create(saved_model, config)
 
+    is_stochastic = os.environ.get("NEAT_PONG_ENV_MODE") == "stochastic"
+
     env = gym.make(
         "ALE/Pong-v5",
         render_mode="human",
-        frameskip=(1, 2),
-        repeat_action_probability=0.05,
+        frameskip=(1, 2) if is_stochastic else None,
+        repeat_action_probability=0.05 if is_stochastic else 0.0,
     )
 
     init_frame = env.reset()[0]
@@ -200,9 +203,15 @@ def test_ai(config, filepath: str):
         env.render()
 
 
-def run(mode: str, render_mode: str, filepath: str):
+def run(mode: str, env_mode: str, filepath: str):
     """Filepath leads either to checkpoint file (for training) or
     net pickled into a file (for testing)."""
+
+    # Set env_mode as env var. Probably should be done cleaner
+    if env_mode == "stochastic":
+        os.environ["NEAT_PONG_ENV_MODE"] = "stochastic"
+    elif env_mode == "deterministic":
+        os.environ["NEAT_PONG_ENV_MODE"] = "deterministic"
 
     # Load config
     config_path = Path("config.txt").resolve()
