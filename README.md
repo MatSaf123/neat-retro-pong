@@ -25,7 +25,9 @@ Very basic and crude, but somewhat working. Example usages:
 
 # Training results
 
-The result of training process is `winner_1694178090.807158`.
+The result of training process is `winner_1694178090.807158`. Since ATARI's Pong is purely deterministic (ATARI-AI's moves are possible to be predicted and are dependant on player's moves.
+This means that if player plays in a certain way, he can be sure that ATARI-AI will respond in a way he expects it to). Agent learned to exploit this fact,
+learned a set of optimal moves and completely outplayed and soft-locked opponent with it, which always leads to a win.
 
 The structure of this agent:
 
@@ -44,6 +46,9 @@ Connections:
 	DefaultConnectionGene(key=(-2, 0), weight=2.5728533470496604, enabled=False)
 	DefaultConnectionGene(key=(-1, 0), weight=-2.0634971801223627, enabled=True)
 ```
+
+It is interesting to see such a minimal topology here, and that despite the fact all inputs were connected to all outputs at the start,
+NEAT decided to remove part of the connections.
 
 Avg fitness progression through generations (max achievable score was 4 because of timesteps set to 800.
 More timesteps == more time to play game == more points during training):
