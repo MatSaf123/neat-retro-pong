@@ -150,7 +150,7 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
         2: "Down",
     }
 
-    draw_net(config, winner, True, node_names=node_names)
+    draw_net(config, winner, True, node_names=node_names, show_disabled=False)
 
 
 def test_ai(config, filepath: str):
@@ -232,7 +232,23 @@ def run(mode: str, env_mode: str, filepath: str):
         # Load model from pickle
         with open(filepath, "rb") as f:
             genome = pickle.load(f)
-            draw_net(config, genome, True)
+            node_names = {
+                -1: "Player Y",
+                -2: "Ball Y",
+                -3: "Player-Ball dist",
+                0: "Stay",
+                1: "Up",
+                2: "Down",
+            }
+
+        draw_net(
+            config,
+            genome,
+            True,
+            node_names=node_names,
+            show_disabled=False,
+        )
+
     else:
         raise Exception("No such mode as {} in neat-pong".format(mode))
 

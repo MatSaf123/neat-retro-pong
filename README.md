@@ -97,7 +97,7 @@ Connections:
 	DefaultConnectionGene(key=(96, 0), weight=1.6968276843853822, enabled=True)
 ```
 
-The structure is noticably more complex than the deterministic one, and it is also interesting to see that the agent learned to use the `up` and `down` actions, which were not used in the deterministic agent. This is because the stochastic agent is not able to predict ATARI-AI's moves, so it has to react to them.
+The structure is noticably more complex than the deterministic one, and it is also interesting to see that the agent learned to use the `up` and `down` actions, which were not used in the deterministic agent. This is because the stochastic agent is not able to (perfectly) predict ATARI-AI's moves, so it has to react to them.
 
 Avg fitness progression through generations (this time timesteps param was set to 1600):
 
@@ -109,6 +109,49 @@ Species in population through generations. It's interesting to see the original 
 <p align="center">    
     <img src = "speciation_stochastic.svg" alt="Stochastic species progression" style="width:400px;height:400px;"/>
 </p>
+
+## Stochastic Agent 2 (+30 generations)
+
+<b>After training stochastic agent described above for 30 more generations, it was able to achieve perfect score against ATARI-AI (20:0)</b>. It mostly exploited the opponent with optimal moves, but when things went out of control it adapted very well and carried out other tactics.
+
+The structure of the agent:
+
+<p align="center">    
+	<img src = "digraph_stochastic_2.gv.svg" alt="Stochastic net structure"/>
+</p>
+
+
+```
+Nodes:
+	0 DefaultNodeGene(key=0, bias=2.883798586231094, response=1.0, activation=relu, aggregation=sum)
+	1 DefaultNodeGene(key=1, bias=2.8721428075269113, response=1.0, activation=relu, aggregation=sum)
+	2 DefaultNodeGene(key=2, bias=6.36800286531754, response=1.0, activation=relu, aggregation=sum)
+	96 DefaultNodeGene(key=96, bias=2.4240037375307417, response=1.0, activation=relu, aggregation=sum)
+Connections:
+	DefaultConnectionGene(key=(-3, 2), weight=1.2178290797614308, enabled=False)
+	DefaultConnectionGene(key=(-2, 2), weight=5.039511630294113, enabled=True)
+	DefaultConnectionGene(key=(-2, 96), weight=-0.26560251446546485, enabled=True)
+	DefaultConnectionGene(key=(-1, 0), weight=0.012287893285269143, enabled=True)
+	DefaultConnectionGene(key=(-1, 1), weight=3.601375265699315, enabled=True)
+	DefaultConnectionGene(key=(-1, 2), weight=-1.0043851244458164, enabled=True)
+	DefaultConnectionGene(key=(-1, 96), weight=-1.9378402825572794, enabled=False)
+	DefaultConnectionGene(key=(1, 96), weight=0.10400295687526263, enabled=False)
+```
+
+The structure is pretty confusing, especially the singular node `96`. It's worth investigating what's going on here, because maybe the visualization code is not correct, or the topology is just weird and node is obsolete (since it's not connected to outputs).
+
+Avg fitness progression through generations 30-60:
+
+<p align="center">    
+    <img src = "avg_fitness_stochastic.svg" alt="Stochastic fitness progression" style="width:400px;height:400px;"/>
+</p>
+
+Species in population through generations 30-60: 
+
+<p align="center">    
+    <img src = "speciation_stochastic_2.svg" alt="Stochastic species progression" style="width:400px;height:400px;"/>
+</p>
+
 
 # Random notes
 - On Linux I also needed `sudo apt install swig`, and I did `pip install box2d-py` manually as well.
