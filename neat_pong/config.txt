@@ -1,7 +1,7 @@
 [NEAT]
 fitness_criterion     = max
-fitness_threshold     = 400
-pop_size              = 100
+fitness_threshold     = 100
+pop_size              = 200
 reset_on_extinction   = False
 
 [DefaultStagnation]
@@ -43,14 +43,14 @@ conn_delete_prob        = 0.5
 
 # connection enable options
 enabled_default         = True
-enabled_mutate_rate     = 0.1
+enabled_mutate_rate     = 0.01
 
 feed_forward            = True
-initial_connection      = unconnected
+initial_connection      = full_direct 
 
 # node add/remove rates
-node_add_prob           = 0.2
-node_delete_prob        = 0.2
+node_add_prob           = 0.35
+node_delete_prob        = 0.35
 
 # network parameters
 num_hidden              = 0

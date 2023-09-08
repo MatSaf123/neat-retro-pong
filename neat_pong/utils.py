@@ -2,14 +2,36 @@ from typing import Optional, Tuple, List
 import numpy as np
 import cv2
 
+# Paddles can't move vertically, so these are constant
+PLAYER_X_COORDS = 81, 82, 83
+# PLAYER_X_COORDS = list(range(154, 160))
+
+BALL_RGB = 236
+PLAYER_PADDLE_RGB = 123, 146  # Two values possible
+AI_PADDLE_RGB = 139
+BACKGROUND_RGB = 77, 90  # Two values possible
+
 
 def preprocess_frame(frame) -> np.ndarray:
     """Get rid of player's score and colors, leaving
-    only interpolated, resized image of two paddles and the ball."""
-    frame = frame[34:-16, 5:-4]
+    only interpolated, resized image of two paddles and the ball,
+    and cut the sides of the frame."""
+
+    frame = frame[34:-16, 17:-16]
     frame = np.average(frame, axis=2)
     frame = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_NEAREST)
     frame = np.array(frame, dtype=np.uint8)
+
+    # unique_values = set()
+    # for row in frame:
+    #     for value in row:
+    #         unique_values.add(value)
+    # print(unique_values)
+
+    # from matplotlib import pyplot as plt
+
+    # plt.imshow(frame)
+    # plt.show()
 
     return frame
 
@@ -31,8 +53,8 @@ def get_ball_pixel_coords(frame) -> Optional[List[Tuple[float, float]]]:
     for ones with RGB value of 236: these are the building blocks
     for ball. Return a list of coordinates of these pixels."""
 
-    # Search for 236 value, these mean ball body
-    coords = np.argwhere(frame == 236)
+    # Search for ball pixel coords
+    coords = np.argwhere(frame == BALL_RGB)
 
     # Map to list of tuples. For whatever reason
     # order of thes x-y coords is swapped, so swap them back
@@ -48,12 +70,12 @@ def get_ball_pixel_coords(frame) -> Optional[List[Tuple[float, float]]]:
 
 def get_object_position(pixel_coords: List[Tuple[float, float]]) -> Tuple[float, float]:
     """Computes coordinates of object based on it's pixels coordinates:
-    in other words, computes median of x's and median of y's based on list
+    in other words, computes avg of x's and median of y's based on list
     of pixels building the game object."""
 
     # Separete x and y values in pixel coords into two lists
-    x_vals = [c[0] for c in pixel_coords]
-    y_vals = [c[1] for c in pixel_coords]
+    x_vals = list(set([c[0] for c in pixel_coords]))
+    y_vals = list(set([c[1] for c in pixel_coords]))
 
     # Get "center" value of x's
     if len(x_vals) == 1:
@@ -78,74 +100,11 @@ def get_player_paddle_pixel_coords(frame) -> Optional[List[Tuple[float, float]]]
     pixels_coords = []
 
     for y in range(len(frame)):
-        # We look for player's y coords, x are const; this means
-        # we can simply look in the x rows that the player is always present: 76 and 77.
-        for x in [76, 77]:
-            if frame[y][x] == 123:  # Search for 123 value, these mean paddle body
+        for x in PLAYER_X_COORDS:
+            if (
+                frame[y][x] == PLAYER_PADDLE_RGB[0]
+                or frame[y][x] == PLAYER_PADDLE_RGB[1]
+            ):
                 pixels_coords.append((x, y))
-            elif frame[y][x] == 146:
-                # For whatever reason in pong no-frameskip first frame has different colors,
-                # so that's the case for it
-                pixels_coords.append((x, y))
-            else:
-                continue
 
     return pixels_coords
-
-
-def ball_has_hit_right_paddle(
-    paddle_pixel_coords: List[Tuple[float, float]],
-    ball_pixel_coords: Optional[List[Tuple[float, float]]],
-) -> bool:
-    """AI should `like` hitting the ball with it's paddle
-    and `love` getting the ball behind opponent's paddle.
-    Therefore give one point when AI succesfully hits the ball
-    - but that has to be lower than the points for scoring a goal.
-
-    With this function we try to detect collision between player's paddle
-    and the ball.
-    """
-
-    if not ball_pixel_coords:
-        return False
-
-    # Get ball's right edge pixel coordinate, I'm not sure if paddle can hit
-    # the ball with it's top or bottom, but that's simplification of things
-    most_right_ball_x = max([p[1] for p in ball_pixel_coords])
-
-    # Get pixels corresponding to coords above
-    ball_right_edge_pixel_coords = [
-        pixel_coord
-        for pixel_coord in ball_pixel_coords
-        if pixel_coord[1] == most_right_ball_x
-    ]
-
-    # Check if these pixels are within x=76, that's the only way a ball can hit
-    # the front of a paddle. Again, not sure about top/bottom, but we're simplifying.
-    if not all([px_coords[0] == 76 for px_coords in ball_right_edge_pixel_coords]):
-        return False
-
-    # Finally, check if any of ball's pixels connect with paddle pixels - meaning, if those two objects connect
-    objects_connect = False
-    for ball_pixel_coord in ball_right_edge_pixel_coords:
-        for paddle_pixel_coord in paddle_pixel_coords:
-
-            # Check if y is the same
-            if ball_pixel_coord[1] != paddle_pixel_coord[1]:
-                continue
-
-            # Check if x pixels are right next to each other
-            # on x-axis -> take paddle[x] - ball[x] and check if
-            # it's equal to one. If yes, we got a hit!
-            if paddle_pixel_coord[0] - ball_pixel_coord[0] != 1:
-                continue
-
-            # We got a hit!
-            objects_connect = True
-            break
-
-        # Break the ball points loop too
-        if objects_connect:
-            break
-
-    return objects_connect

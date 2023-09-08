@@ -13,7 +13,6 @@ from .utils import (
     get_player_paddle_pixel_coords,
     get_ball_pixel_coords,
     get_object_position,
-    ball_has_hit_right_paddle,
 )
 from pathlib import Path
 from datetime import datetime
@@ -26,9 +25,11 @@ class PongEnv:
 
     def __init__(self):
         self._env = gym.make(
-            "PongNoFrameskip-v4",
+            "ALE/Pong-v5",
             render_mode="rgb_array",  # TODO this is hardcoded again, fix somehow to control with CLI
             # render_mode="human",  # TODO this is hardcoded again, fix somehow to control with CLI
+            frameskip=2,
+            repeat_action_probability=0.0,
         )
 
     @property
@@ -49,9 +50,6 @@ def eval_genome(genome, config) -> float:
     score = make_ai_play_game(net, 800, False)  # Don't render
     genome.fitness = score
     print("Genome {} fitness: {}".format(genome.key, genome.fitness))
-    # print(
-    # "Genome {}: Ending simulation with genome score: {}".format(genome.key, score)
-    # )
     return score
 
 
@@ -64,24 +62,16 @@ def make_ai_play_game(
     (second player is provided by gym environment)."""
 
     env = PongEnv().get_env
-    env.reset()
-
     # Set initial environment state
-    init_frame = env.step(0)[0]
+
+    init_frame = env.reset()[0]
     target_frame = preprocess_frame(init_frame)
 
     # Let's pretend that AI stays in place when sim inits
-    ai_move = 0, 0
+    ai_move = None
 
     # Set initial genome fitness to 0
     fitness = 0.0
-
-    # After AI (our AI, the one on right) hits ball with its paddle, reset counter
-    # to zero. This way when we detect collision we can see
-    # if some time has passed from the last hit and NOT
-    # count three hits at once for example, because sometimes
-    # ball stays a bit longer than one frame in the range of a padle.
-    frames_since_last_hit = 0
 
     for _ in range(timesteps):
         ball_pixel_coords = get_ball_pixel_coords(target_frame)
@@ -94,18 +84,13 @@ def make_ai_play_game(
         player_pixel_coords = get_player_paddle_pixel_coords(target_frame)
         player_x, player_y = get_object_position(player_pixel_coords)
 
-        player_ball_dist = get_distance_between_points(
-            (ball_x, ball_y), (player_x, player_y)
-        )
+        player_ball_x_dist = get_distance_between_points((ball_x, 0), (player_x, 0))
 
-        outputs = net.activate((player_y, ball_y, player_ball_dist))
+        outputs = net.activate((player_y, ball_y, round(player_ball_x_dist, 2)))
 
         ai_move = (
             np.argmax(outputs) + 1
-        )  # function returns 0, 1, 2; controlls are 1, 2, 3
-
-        if ai_move == 2 or ai_move == 3:
-            fitness -= 0.0001  # Penalize for moving up or down. Want to stay in place as much as possible
+        )  # function returns 0, 1, 2 controlls are 1, 2, 3 for stay, up and down
 
         # Take action and prepare frame for next loop iteration
         frame, reward, done, _, info = env.step(ai_move)
@@ -114,17 +99,8 @@ def make_ai_play_game(
         # Add either 1 for goal scored, 0 for nothing and -1 for point lost in this frame
         fitness += reward
 
-        # If AI hits ball with it's paddle, give it 1 points
-        if (
-            ball_has_hit_right_paddle(player_pixel_coords, ball_pixel_coords)
-            and frames_since_last_hit > 10  # Ten frames is the threshold
-        ):
-            fitness += 0.25  # Add half of point for just hitting the ball
-            # Set to -1 because we'll add 1 at the end of this loop anyway
-            frames_since_last_hit = -1
-
-        frames_since_last_hit += 1
         if render:
+            print("rendering!")
             env.render()
         if done:
             break
@@ -152,7 +128,7 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
 
     # Initialize pararell evaluator
     pe = neat.ParallelEvaluator(14, eval_genome)  # TODO take workers num from cli arg
-    winner = pop.run(pe.evaluate, 50)
+    winner = pop.run(pe.evaluate, 10)
 
     # Show output of the most fit genome against training data.
     print(winner)
@@ -187,17 +163,15 @@ def test_ai(config, filepath: str):
     net = neat.nn.FeedForwardNetwork.create(saved_model, config)
 
     env = gym.make(  # TODO make this singleton?
-        "PongNoFrameskip-v4",
+        "ALE/Pong-v5",
         render_mode="human",  # TODO this is hardcoded again, fix somehow to control with CLI
+        frameskip=2,
+        repeat_action_probability=0.0,
     )
 
-    env.reset()
-
-    init_frame = env.step(0)[0]
+    init_frame = env.reset()[0]
     state = preprocess_frame(init_frame)  # Initial environment state, inputs for NN
     target_frame = state
-
-    left_score, right_score = 0, 0
 
     while True:
         ball_pixel_coords = get_ball_pixel_coords(target_frame)
@@ -210,30 +184,24 @@ def test_ai(config, filepath: str):
         player_pixel_coords = get_player_paddle_pixel_coords(target_frame)
         player_x, player_y = get_object_position(player_pixel_coords)
 
-        player_ball_dist = get_distance_between_points(
-            (ball_x, ball_y), (player_x, player_y)
-        )
+        player_ball_x_dist = get_distance_between_points((ball_x, 0), (player_x, 0))
 
-        outputs = net.activate((player_y, ball_y, player_ball_dist))
+        print(
+            "Player y: {}, Ball y: {}, Player-Ball dist: {}".format(
+                player_y, ball_y, round(player_ball_x_dist, 2)
+            )
+        )
+        outputs = net.activate((player_y, ball_y, round(player_ball_x_dist, 2)))
 
         ai_move = (
             np.argmax(outputs) + 1
-        )  # function returns 0, 1, 2; controlls are 1, 2, 3 (stay, up, down)
+        )  # function returns 0, 1, 2 controlls are 1, 2, 3 for stay, up and down
 
-        frame, score, done, _, info = env.step(ai_move)
-
-        if score == -1:
-            left_score += 1
-        elif score == 1:
-            right_score += 1
-
+        # Take action and prepare frame for next loop iteration
+        frame, reward, done, _, info = env.step(ai_move)
         target_frame = preprocess_frame(frame)
 
         env.render()
-
-        # if done or left_score == 10 or right_score == 10:
-        # print("End of the game!")
-        # break
 
 
 def run(mode: str, render_mode: str, filepath: str):
