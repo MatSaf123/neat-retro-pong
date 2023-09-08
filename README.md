@@ -31,7 +31,7 @@ The result of training process are two agents: `winner_deterministic.pkl` and `w
 
 Since ATARI's Pong is purely deterministic (ATARI-AI's moves are possible to be predicted and are dependant on player's moves - that results in `winner_deterministic.pkl` agent. This means that if player plays in a certain way, he can be sure that ATARI-AI will respond in a way he expects it to). Agent learned to exploit this fact, learned a set of optimal moves and completely outplayed and soft-locked opponent with it, which always leads to a win.
 
-<b>This agent wins 21:0 against ATARI-AI every time.</b>
+<b>This agent wins 2:0 against ATARI-AI every time.</b>
 
 The structure of deterministic agent:
 
@@ -99,6 +99,8 @@ Connections:
 
 The structure is noticably more complex than the deterministic one, and it is also interesting to see that the agent learned to use the `up` and `down` actions, which were not used in the deterministic agent. This is because the stochastic agent is not able to (perfectly) predict ATARI-AI's moves, so it has to react to them.
 
+It's worth noting that some of the connections are disabled (as can be seen in the code snippets"), which means that some branches of nets are disabled, but are considered valuable enough by NEAT to not get rid of.
+
 Avg fitness progression through generations (this time timesteps param was set to 1600):
 
 <p align="center">    
@@ -141,7 +143,7 @@ Connections:
 	DefaultConnectionGene(key=(1, 96), weight=0.10400295687526263, enabled=False)
 ```
 
-The structure is pretty confusing, especially the singular node `96`. It's worth investigating what's going on here, because maybe the visualization code is not correct, or the topology is just weird and node is obsolete (since it's not connected to outputs).
+The structure is pretty confusing, especially the singular node `96`. There's quite some disabled connections though, and the node `96` is not linked to any of the output nodes (but it might, via a mutation in future).
 
 Avg fitness progression through generations 30-60:
 
