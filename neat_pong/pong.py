@@ -1,4 +1,3 @@
-# Re-implementation of Python-NEAT Pong game, but this time with usage of openai gym.
 from typing import Optional
 import gym
 import numpy as np
@@ -17,7 +16,7 @@ from .utils import (
 from pathlib import Path
 from datetime import datetime
 
-CENTER_OF_MAP_COORDS = 41.0, 43.5  # True almost every time!
+CENTER_OF_MAP_COORDS = 42, 42
 
 
 class PongEnv:
@@ -26,10 +25,9 @@ class PongEnv:
     def __init__(self):
         self._env = gym.make(
             "ALE/Pong-v5",
-            render_mode="rgb_array",  # TODO this is hardcoded again, fix somehow to control with CLI
-            # render_mode="human",  # TODO this is hardcoded again, fix somehow to control with CLI
-            frameskip=2,
-            repeat_action_probability=0.0,
+            render_mode="rgb_array",
+            frameskip=(1, 2),
+            repeat_action_probability=0.05,
         )
 
     @property
@@ -44,10 +42,8 @@ def eval_genome(genome, config) -> float:
     """This function has to be on top of the file to allow
     mutliprocessing logic to utilize it"""
 
-    # print("Genome {}: Starting simulation".format(genome.key))
-    #
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-    score = make_ai_play_game(net, 800, False)  # Don't render
+    score = make_ai_play_game(net, 1600, False)  # Don't render
     genome.fitness = score
     print("Genome {} fitness: {}".format(genome.key, genome.fitness))
     return score
@@ -100,8 +96,8 @@ def make_ai_play_game(
         fitness += reward
 
         if render:
-            print("rendering!")
             env.render()
+
         if done:
             break
 
@@ -127,8 +123,8 @@ def train_ai(config, checkpoint_filename: Optional[str] = None):
     )
 
     # Initialize pararell evaluator
-    pe = neat.ParallelEvaluator(14, eval_genome)  # TODO take workers num from cli arg
-    winner = pop.run(pe.evaluate, 10)
+    pe = neat.ParallelEvaluator(15, eval_genome)
+    winner = pop.run(pe.evaluate, 30)
 
     # Show output of the most fit genome against training data.
     print(winner)
@@ -162,11 +158,11 @@ def test_ai(config, filepath: str):
         saved_model = pickle.load(f)
     net = neat.nn.FeedForwardNetwork.create(saved_model, config)
 
-    env = gym.make(  # TODO make this singleton?
+    env = gym.make(
         "ALE/Pong-v5",
-        render_mode="human",  # TODO this is hardcoded again, fix somehow to control with CLI
-        frameskip=2,
-        repeat_action_probability=0.0,
+        render_mode="human",
+        frameskip=(1, 2),
+        repeat_action_probability=0.05,
     )
 
     init_frame = env.reset()[0]

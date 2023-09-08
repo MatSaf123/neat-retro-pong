@@ -22,12 +22,6 @@ def preprocess_frame(frame) -> np.ndarray:
     frame = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_NEAREST)
     frame = np.array(frame, dtype=np.uint8)
 
-    # unique_values = set()
-    # for row in frame:
-    #     for value in row:
-    #         unique_values.add(value)
-    # print(unique_values)
-
     # from matplotlib import pyplot as plt
 
     # plt.imshow(frame)

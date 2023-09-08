@@ -1,0 +1,17 @@
+digraph {
+	node [fontsize=9 height=0.2 shape=circle width=0.2]
+	"Player Y" [fillcolor=lightgray shape=box style=filled]
+	"Ball Y" [fillcolor=lightgray shape=box style=filled]
+	"Player-Ball dist" [fillcolor=lightgray shape=box style=filled]
+	Stay [fillcolor=lightblue style=filled]
+	Up [fillcolor=lightblue style=filled]
+	Down [fillcolor=lightblue style=filled]
+	96 [fillcolor=white style=filled]
+	"Player Y" -> Up [color=green penwidth=0.8240041414888393 style=solid]
+	"Ball Y" -> Stay [color=green penwidth=0.32908880123421747 style=solid]
+	"Ball Y" -> Down [color=green penwidth=0.8836687269693223 style=solid]
+	"Player-Ball dist" -> Stay [color=red penwidth=0.2255618482129348 style=dotted]
+	"Player-Ball dist" -> Up [color=red penwidth=0.6050731561967051 style=solid]
+	Up -> 96 [color=green penwidth=0.18607913200496087 style=dotted]
+	96 -> Stay [color=green penwidth=0.43936553687707647 style=solid]
+}
