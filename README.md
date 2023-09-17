@@ -31,7 +31,7 @@ The result of training process are two agents: `winner_deterministic.pkl` and `w
 
 Since ATARI's Pong is purely deterministic (ATARI-AI's moves are possible to be predicted and are dependant on player's moves - that results in `winner_deterministic.pkl` agent. This means that if player plays in a certain way, he can be sure that ATARI-AI will respond in a way he expects it to). Agent learned to exploit this fact, learned a set of optimal moves and completely outplayed and soft-locked opponent with it, which always leads to a win.
 
-<b>This agent wins 2:0 against ATARI-AI every time.</b>
+<b>This agent wins 21:0 against ATARI-AI every time.</b>
 
 The structure of deterministic agent:
 
